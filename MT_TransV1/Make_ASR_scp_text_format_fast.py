@@ -52,12 +52,20 @@ def Search_for_utt(query, search_file,SPmodel_path):
         return utt_text
 
 #=======================================================================================
-def format_tokenize_data(scp_file,transcript,Translation,outfile,Tgt_model_path,Src_model_path): 
-        for scpfile in scp_file:  
-
-          scp_dict={line.split(' ')[0]:line.strip().split(' ')[1:] for line in open(scpfile)}
-          transcript_dict={line.split(' ')[0]:line.strip().split(' ')[1:] for line in open(transcript)}
-          Translation_dict={line.split(' ')[0]:line.strip().split(' ')[1:] for line in open(Translation)}
+def format_tokenize_data(scp_files,transcript,Translation,outfile,Tgt_model_path,Src_model_path): 
+        for scpfile in scp_files:  
+          #import pdb;pdb.set_trace() 
+          
+          line=open(scpfile).readline()
+          line=line.split(' ')[0]
+          if len(line)==1:
+            ###-------:for MT data
+            scp_dict={line.strip().split(' ')[0]:None for line in open(scpfile)}
+          else:
+            scp_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open(scpfile)}
+          #=====================================================================
+          transcript_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open(transcript)}
+          Translation_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open(Translation)}
 
           for query in list(scp_dict.keys()):
                 #print(query)

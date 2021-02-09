@@ -162,12 +162,12 @@ def get_Bleu_for_beam(key,Src_tokens,Src_text,Tgt_tokens,Tgt_text, model,plot_pa
                     CER = compute_cer(Text_seq_formatted, True_label,'doesnot_matter')*100
                 else:
                     CER = 100
-
+                #breakpoint()
                 hyp_value = Text_seq_formatted 
                 ref_value = True_label
-                Bleu_score = sentence_bleu(hyp_value,ref_value,smooth_value=SMOOTH_VALUE_DEFAULT,smooth_method='exp',use_effective_order='True')
+                Bleu_score = sentence_bleu(hyp_value,[ref_value],smooth_value=SMOOTH_VALUE_DEFAULT,smooth_method='exp',use_effective_order='True')
         
-                Bleu_score = Bleu_score[0]
+                Bleu_score = Bleu_score.score
         else:
                 CER = None
                 Bleu_score = None

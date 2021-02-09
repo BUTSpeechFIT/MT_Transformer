@@ -47,8 +47,26 @@ def train_val_model(**kwargs):
         smp_Tgt_labels = smp_Tgt_labels.cuda() if args.gpu else smp_Tgt_labels
         #--------------------------------
         #
+        OOM=False
         if trainflag:
-                    Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+
+            try:
+                Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+
+            except Exception as e:
+                   if 'CUDA out of memory' in str(e):
+                      OOM=True
+                      torch.cuda.empty_cache()
+                      print("The model in OOM condition","smp_no",smp_no,"batch size for the batch is:",smp_Src_labels.shape)
+                      #break;
+            ###When there is oom eror make the batch size 2
+            if OOM:
+                  batch_size = smp_Src_labels.shape[0]
+                  smp_Src_labels = smp_Src_labels[:2]
+                  smp_Tgt_labels = smp_Tgt_labels[:2]
+                  print("The model running under OOM condition","smp_no",smp_no,"batch size for the batch is:",2)
+                  Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+
         else:
             with torch.no_grad():
                     Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
@@ -58,12 +76,12 @@ def train_val_model(**kwargs):
 
         ###training with accumilating gradients
         if trainflag:
+                cost=cost/args.accm_grad
                 cost.backward()
                 if args.clip_grad_norm != 0:
                         torch.nn.utils.clip_grad_norm_(model.parameters(),args.clip_grad_norm)
-                cost=cost/args.accm_grad
-                cost.detach()   
 
+                cost.detach()   
                 ###gradient accumilation
                 if(smp_no%args.accm_grad)==0:
                     optimizer.step()
