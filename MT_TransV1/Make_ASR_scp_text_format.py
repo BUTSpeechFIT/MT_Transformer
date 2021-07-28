@@ -5,8 +5,8 @@ import os
 from os.path import join
 
 
-sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1')
-from Load_sp_model import Load_sp_models
+sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer')
+from MT_TransV1.Load_sp_model import Load_sp_models
 text_dlim=' @@@@ '
 #=================================================================
 def Search_for_utt(query, search_file,SPmodel):

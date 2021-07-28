@@ -13,19 +13,13 @@ import subprocess
 from os.path import join, isdir
 
 
-
-#from EncoderLayer import EncoderLayer
-#from PositionalEncoding import PositionalEncoding
-#from PositionwiseFeedForward import PositionwiseFeedForward
-
-
 #------------------------------------------------------------------------------------------------------------
 #=============================================================================================================
 def Stocasting_Weight_Addition(model,model_names):
 
         noof_chkpnts = len(model_names)
         present_model = model_names[0]
-        #print("Adding:",present_model)
+        print("initializing with the model with:",present_model)
         P_model_path=join(present_model)        
         model.load_state_dict(torch.load(P_model_path, map_location=lambda storage, loc: storage),strict=True)
         model_keys=model.state_dict().keys()

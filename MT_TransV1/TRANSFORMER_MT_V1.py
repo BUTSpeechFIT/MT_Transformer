@@ -16,12 +16,14 @@ import torch.nn.utils.weight_norm as wtnrm
 import numpy as np
 from keras.preprocessing.sequence import pad_sequences
 
-from Trans_Decoder import Decoder
-from Trans_Encoder import Encoder
-
-
 import sys
-sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_Transformer')
+sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/')
+from MT_TransV1.Trans_Decoder import Decoder
+from MT_TransV1.Trans_Encoder import Encoder
+
+
+#import sys
+#sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_Transformer')
 
 
 #--------------------------------------------------------------------------
@@ -32,6 +34,7 @@ class Transformer(nn.Module):
         self.label_smoothing = args.label_smoothing
         self.encoder = Encoder(args=args,MT_flag=True)
         self.decoder = Decoder(args=args)
+        
         #----------------------------------
     def forward(self, padded_Src_seq,padded_Tgt_seq):
         ###conv layers
@@ -44,7 +47,7 @@ class Transformer(nn.Module):
     #=============================================================================================================
     #==============================================================================
     def predict(self, Src_tokens,args):
-        print("went to the decoder loop")
+        #print("went to the decoder loop")
        
 
         with torch.no_grad():
@@ -90,31 +93,42 @@ class Transformer(nn.Module):
 class TransformerOptimizer(object):
     """A simple wrapper class for learning rate scheduling"""
 
-    def __init__(self, optimizer, k, d_model, warmup_steps=4000):
+    def __init__(self, optimizer, k, d_model, step_num=0, warmup_steps=4000, warm_restart=200000):
         self.optimizer = optimizer
+        
+        self.optimizer_org = optimizer
         self.k = k
         
         #present_lr=[param_group['lr'] for param_group in self.optimizer.param_groups]
         self.init_lr = d_model ** (-0.5)
         self.warmup_steps = warmup_steps
-        self.step_num = 0
+        self.step_num = step_num
+
         self.reduction_factor=1
+        self.warm_restart = warm_restart
+
+
+
     def zero_grad(self):
         self.optimizer.zero_grad()
 
     def step(self):
         self._update_lr()
         self.optimizer.step()
+        self.warm_restartfn()
+
 
     def _update_lr(self):
-        self.step_num += 1
-        lr = self.k * self.init_lr * min(self.step_num ** (-0.5),
-                                         self.step_num * (self.warmup_steps ** (-1.5)))
-        
-        #print(lr,self.step_num ** (-0.5),self.step_num * self.warmup_steps ** (-1.5),self.reduction_factor)
 
+
+        self.step_num += 1
+        lr = self.k * self.init_lr * min(self.step_num ** (-0.5), self.step_num * (self.warmup_steps ** (-1.5)))
+        #print(lr,self.step_num ** (-0.5),self.step_num * self.warmup_steps ** (-1.5),self.reduction_factor)
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
+
+
+
 
     def load_state_dict(self, state_dict):
         self.optimizer.load_state_dict(state_dict)
@@ -136,6 +150,10 @@ class TransformerOptimizer(object):
         present_lr=[param_group['lr'] for param_group in self.optimizer.param_groups]
         return present_lr[0]
 
+    def warm_restartfn(self):
+        if (self.step_num%self.warm_restart==0):
+            self.optimizer = self.optimizer_org
+            self.step_num = self.warm_restart
 
 #=============================================================================================================
 

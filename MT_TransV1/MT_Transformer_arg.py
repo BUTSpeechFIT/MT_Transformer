@@ -29,6 +29,7 @@ parser.add_argument("--warmup_steps",metavar='',type=int,default=25000,help="war
 parser.add_argument("--nepochs",metavar='',type=int,default='100',help="No of epochs")
 
 
+parser.add_argument("--step_num",metavar='',type=int,default=1,help="step_num")
 parser.add_argument("--learning_rate",metavar='',type=float,default='0.0003',help="Value of learning_rate ")
 parser.add_argument("--lr_scale",metavar='',type=float,default='1',help="Value of lr_scale ")
 
@@ -67,6 +68,12 @@ parser.add_argument("--max_val_examples",metavar='',type=int,default='150',help=
 
 parser.add_argument("--max_feat_len",metavar='',type=int,default='2000',help="max_seq_len the dataloader does not read the sequences longer that the max_feat_len, for memory and some times to remove very long sent for LSTM")
 parser.add_argument("--max_label_len",metavar='',type=int,default='200',help="max_labes_len the dataloader does not read the sequences longer that the max_label_len, for memory and some times to remove very long sent for LSTM")
+
+parser.add_argument("--min_words",metavar='',type=int,default='3',help="")
+parser.add_argument("--max_words",metavar='',type=int,default='60',help="")
+parser.add_argument("--min_len_ratio",metavar='',type=float,default='1.5',help="")
+
+
 
 ###plot the figures
 parser.add_argument("--plot_fig_validation",metavar='',type=int,default=0,help="True|False Not yet implementd")
@@ -108,11 +115,15 @@ parser.add_argument("--MT_flag",metavar='',type=int,default=0,help="MT_flag")
 
 
 ####decoding_parameters
-parser.add_argument("--RNNLM_model",metavar='',type=str,default='/mnt/matylda3/vydana/HOW2_EXP/Timit/models/TIMIT_fullnewsetup_2_4dr0.3_LAS_loc_arg_format_V2/model_architecture_',help="")
+parser.add_argument("--RNNLM_model",metavar='',type=str,default='None',help="")
 parser.add_argument("--LM_model",metavar='',type=str,default='None',help="LM_model")
+parser.add_argument("--TransLM_model",metavar='',type=str,default='None',help="TransLM_model")
+
 parser.add_argument("--Am_weight",metavar='',type=float,default=1,help="lm_weight a float calue between 0 to 1 --->(Am_weight* Am_pred + (1-Am_weight)*lm_pred)")
 parser.add_argument("--beam",metavar='',type=int,default=10,help="beam for decoding")
 parser.add_argument("--gamma",metavar='',type=float,default=1,help="gamma (0-2), noisy eos rejection scaling factor while decoding")
+parser.add_argument("--len_bonus",metavar='',type=float,default=0.3,help="len_bonus default 1 (0-0.8), to prefer long hyps")
+
 parser.add_argument("--len_pen",metavar='',type=float,default=1,help="len_pen(0.5-2), len_pen maximum number of decoding steps")
 parser.add_argument("--Decoding_job_no",metavar='',type=int,default=0,help="Res_file")
 parser.add_argument("--scp_for_decoding",metavar='',type=int,default=0,help="scp file for decoding")

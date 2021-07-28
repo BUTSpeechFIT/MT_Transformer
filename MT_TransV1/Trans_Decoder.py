@@ -6,14 +6,14 @@ import math
 import pdb 
 from torch.autograd import Variable
 
-
-from Trans_utilities import get_attn_key_pad_mask, get_subsequent_mask, get_attn_pad_mask_encoder, get_attn_pad_mask,get_encoder_non_pad_mask, get_decoder_non_pad_mask,pad_list
-from Trans_MHA import MultiHeadAttention, PositionwiseFeedForward, PositionalEncoding
-
-
 import sys
-sys.path.insert(0, '/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1')
-from Load_sp_model import Load_sp_models
+sys.path.insert(0, '/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer')
+
+from MT_TransV1.Trans_utilities import get_attn_key_pad_mask, get_subsequent_mask, get_attn_pad_mask_encoder, get_attn_pad_mask,get_encoder_non_pad_mask, get_decoder_non_pad_mask,pad_list
+from MT_TransV1.Trans_MHA import MultiHeadAttention, PositionwiseFeedForward, PositionalEncoding
+#import sys
+#sys.path.insert(0, '/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer')
+from MT_TransV1.Load_sp_model import Load_sp_models
 
 #============================================================================================================================
 
@@ -218,7 +218,8 @@ class Decoder(nn.Module):
         To avoid this and increase divesity in the prefixes, in the beam the prefixes which have already had the eos will be given a very large -ve score
         this function does that task;
         """
-
+        
+        
         present_list=[];present_llr=[]
         #works for batch_one_only
         start_collecting=False
@@ -270,7 +271,7 @@ class Decoder(nn.Module):
                 ASR_dec_output=ASR_dec_output.view(batch_size*hyps,-1,dec_output_Bneck_org.size(2))
                 return ASR_dec_output
 ################################################################################################################
-    def prediction_from_trained_model_beam_Search(self,i,ys,score_1,AM_local_scores,beam,hyps,gamma,batch_size):
+    def prediction_from_trained_model_beam_Search(self,i,ys,score_1,AM_local_scores,beam,hyps,gamma,batch_size,len_bonus):
             """
             ####vecotorized beam-search ===>beam search that happens parllelly i.e., 
             1.Each prefix is treated as a invidual sequence when given to the model and the predictions for each prefixes are obtained;
@@ -283,7 +284,7 @@ class Decoder(nn.Module):
             """
 
             if i==0:
-
+               
                 ###for the first time just repeat the hyps and add the beam to the hyposhesis 
                 local_best_scores, local_best_ids = torch.topk(AM_local_scores, hyps, dim=1,largest=True,sorted=True)
                 #---------------------
@@ -298,6 +299,7 @@ class Decoder(nn.Module):
                 ys=torch.cat((ys,present_ids),dim=1)
                 score_1=torch.cat((score_1,present_scores),dim=1)
                 #-----------------------------------------------------------------------                            
+                ####some how stops producin eos at the begining of swquence----not logical
                 mask=torch.eq(present_ids,self.eos_id)
                 score_1=score_1-mask*1000
 
@@ -305,17 +307,20 @@ class Decoder(nn.Module):
                 ###Not corrected ------>should be expanded and selected with selection index,,,,, but model regenerates them with labels in i=>1
             #----------------------------------------------------------------------------    
             else:
-
                 #---------------------
                 local_best_scores, local_best_ids = torch.topk(AM_local_scores, beam, dim=1,largest=True,sorted=True)
+                
+                #print(local_best_scores.sum())
+                #local_best_scores[:,-1] = local_best_scores[:,-1]+np.log(len_bonus)               
+                #print(local_best_scores.sum()) 
+
                 #---------------------               
                 ###################################################
-                
-
+                 
                 ####filtering EOS if EOS has occured with the value leess than the threshold then filtering out 
                 # ---------EoS threshold--------------------------------
                 not_eos_mask=(local_best_ids==self.eos_id)
-                ###EOS scores and ids ,Non EOS score and IDs
+                ###EOS scores and ids, Non EOS score and IDs
                 ##max of Non Eos in dim=1 by making non-Eos -1000
                 ##max of Eos in dim=1 by making non Eos -1000
                 ##compute the threshold if [ EOS > gamma * NON_EOS]
@@ -363,11 +368,18 @@ class Decoder(nn.Module):
                 score_1=score_1.view(batch_size*hyps,-1)
                 ####################################################
                 #----------Eos servived the past iteration then it is 
-                #acccepted EOS so no new labels after EOS, score, should be set to zero otherwise we get bad hypotheis
-                if i>1:
+                #acccepted EOS so no new labels after EOS, score, should be set to zero or bonus otherwise we get bad hypotheis
+                if i>0: 
                      selected_EOS=torch.eq(ys[:,-2],self.eos_id)
+                     #print(selected_EOS,ys)
+   
                      score_1[:,-1]=score_1[:,-1]*(~selected_EOS)
                      ys[:,-1][selected_EOS]=self.eos_id
+                #---------
+
+
+                ##for generating every non eos symbol i want to add some bonus
+                #if i>0:
                 #------------------------------
             return ys,score_1
 ##=============================================================================================================
@@ -379,17 +391,28 @@ class Decoder(nn.Module):
         char_list: list of character, args: args.beam, 
         Returns: nbest_hyps: """
         
+        ############################################################################
+        if LM_model:
+            Is_RNNLM_used = 1 if 'RNNLM' in str(type(LM_model)) else 0
+            #Is_Trans_Lm_used = 1 if 'Trans_LM' in str(type(LM_model)) else 0
+        ############################################################################
+
+
         enc_out_len = encoder_outputs.size(1)       
         #----------------------------
         maxlen=int(enc_out_len*len_pen)
 
         ### This works but can be increased but it takes memory, can be increased Works ---Memory?
         hyps=beam
+        len_bonus = float(args.len_bonus)
+
         #----------------------------
-        print("beam,hyps,len_pen,maxlen,enc_out_len,Am_weight",beam,hyps,len_pen,maxlen,enc_out_len,Am_weight)
+        print("beam,hyps,len_pen,maxlen,enc_out_len,Am_weight,len_bonus",beam,hyps,len_pen,maxlen,enc_out_len,Am_weight,len_bonus)
         
         batch_size = encoder_outputs.size(0)
         ys = torch.ones(batch_size*hyps,1).fill_(self.sos_id).type_as(encoder_outputs).long()
+        
+        
         score_1=torch.zeros_like(ys).float()
         rep_encoder_outputs=torch.repeat_interleave(encoder_outputs,hyps,0)
 
@@ -400,7 +423,9 @@ class Decoder(nn.Module):
         scores_list=[]
         start_collecting=False
         for i in range(maxlen):
-        
+            
+
+            
             #----------------------------------------------------  
             ## if loop to use or not an LM (or) skip the LM for the first step
             ## 
@@ -410,15 +435,24 @@ class Decoder(nn.Module):
                 COMB_AM_MT_local_scores,scores_list,present_label,dec_output_Bneck=self.prediction_from_trained_model(ys,rep_encoder_outputs,scores_list)
             else:
                 AM_local_scores,scores_list,present_label,dec_output_Bneck=self.prediction_from_trained_model(ys,rep_encoder_outputs,scores_list)
-                LM_local_scores,scores_list,present_label,scores=LM_model.decoder.prediction_from_trained_model(ys,encoder_outputs,scores_list)
+                
+
+                ################################################################################################################################
+                if Is_RNNLM_used:                
+                    LM_local_scores,scores_list,present_label,scores=LM_model.decoder.prediction_from_trained_model(ys,encoder_outputs,scores_list)
+                else:
+                    LM_local_scores,scores_list,present_label,scores=LM_model.prediction_from_trained_model(ys,scores_list)
+
+                ################################################################################################################################
 
                 ####0.5 to 1.5 
                 COMB_AM_MT_local_scores = Am_weight * AM_local_scores + (1-Am_weight) * LM_local_scores
             #-------------------------------------------------------------------------------------------------------------------------
             
-            ys,score_1=self.prediction_from_trained_model_beam_Search(i,ys,score_1,COMB_AM_MT_local_scores,beam,hyps,gamma,batch_size)
+            ys,score_1=self.prediction_from_trained_model_beam_Search(i,ys,score_1,COMB_AM_MT_local_scores,beam,hyps,gamma,batch_size,len_bonus)
             ##---------------------------------------------------
-
+            
+            
             score_1,store_ended_hyps,store_ended_LLR=self.get_multiple_hypothesis(store_ended_hyps,store_ended_LLR,ys,score_1,i,maxlen)
             #----------------------------------------------------
 
@@ -434,19 +468,22 @@ class Decoder(nn.Module):
                 break;
         #----------------------------------------------------
         ys=nn.utils.rnn.pad_sequence(store_ended_hyps,batch_first=True,padding_value=self.eos_id)
-        score_1=nn.utils.rnn.pad_sequence(store_ended_LLR,batch_first=True,padding_value=0)
-        
+        score_1=nn.utils.rnn.pad_sequence(store_ended_LLR,batch_first=True,padding_value=np.log(len_bonus))
+        #breakpoint()
+
         #producing the correct_order
         #----------------------------------------------------
-        XS=[torch.sum(i) for i in store_ended_LLR]
-        XS1=sorted(((e,i) for i,e in enumerate(XS)),reverse=True)
-        correct_sorted_order=[i[1] for i in XS1]
+        #XS=[torch.sum(i) for i in store_ended_LLR]
+        #XS1=sorted(((e,i) for i,e in enumerate(XS)),reverse=True)
+        #correct_sorted_order=[i[1] for i in XS1]
+
+        _,correct_sorted_order = torch.sort(torch.sum(score_1,dim=1),descending=True)
         #----------------------------------------------------
+        
         ys=ys[correct_sorted_order]
         score_1=score_1[correct_sorted_order]
         ##------------------------------
-        print(ys,torch.sum(score_1,dim=1))    
-        #breakpoint()
+        print(ys,torch.sum(score_1,dim=1))     
         #--------------------------------
         return ys,score_1
     ####################################

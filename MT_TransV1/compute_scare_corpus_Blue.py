@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/python
 
 import numpy as np
 
@@ -12,8 +12,6 @@ SMOOTH_VALUE_DEFAULT=1e-8
 #reference = [['this', 'is', 'a', 'test'], ['this', 'is' 'test']]
 #candidate = ['this', 'is', 'a', 'test']
 
-
-
 ref_file=str(sys.argv[1])
 hyp_file=str(sys.argv[2])
 print(ref_file,hyp_file)
@@ -26,10 +24,12 @@ ref_dict = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in f
 ref_dict_list=[]
 for key in list(ref_dict.keys()):
         ref_utt=ref_dict.get(key," ")
+
         if len(ref_utt)>1:
                 ref_dict_list.append(" ".join(ref_utt))
         else:
-                ref_dict_list.append(ref_utt[0])
+                ref_utt = ref_utt[0] if ref_utt else " "
+                ref_dict_list.append(ref_utt)
 
 g=open(str(hyp_file),'r')
 hyp_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in g.readlines()}
@@ -38,18 +38,17 @@ hyp_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in g.r
 hyp_dict_list=[]
 for key in list(ref_dict.keys()):
         hyp_utt=hyp_dict.get(key," ")
-
         if len(hyp_utt)>1:
                 hyp_dict_list.append(" ".join(hyp_utt))
         else:
                 hyp_utt = hyp_utt[0] if hyp_utt else " "
-                hyp_dict_list.append(hyp_utt[0])
+                hyp_dict_list.append(hyp_utt)
 #-----------------------------------------------------------------------
 
 #print(hyp_dict_list, ref_dict_list)
 #----------------------------------------------------------------------------------------------
 Bleu_score=corpus_bleu(hyp_dict_list,[ref_dict_list],smooth_value=SMOOTH_VALUE_DEFAULT,smooth_method='exp',use_effective_order='True')
-print('BLUE:===>',Bleu_score[0])
+print('BLUE:===>',Bleu_score.score)
 
 #---------------------------------------------------------------------------------------------
 

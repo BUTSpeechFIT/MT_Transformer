@@ -11,11 +11,12 @@ from torch.autograd import Variable
 
 
 import sys
-sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1')
-from Trans_conv_layers import Conv_2D_Layers
-from Trans_utilities import get_attn_key_pad_mask, get_subsequent_mask, get_attn_pad_mask_encoder, get_attn_pad_mask,get_encoder_non_pad_mask, get_decoder_non_pad_mask
-from Trans_MHA import MultiHeadAttention, PositionwiseFeedForward, PositionalEncoding
-from Load_sp_model import Load_sp_models
+sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer')
+
+from MT_TransV1.Trans_conv_layers import Conv_2D_Layers
+from MT_TransV1.Trans_utilities import get_attn_key_pad_mask, get_subsequent_mask, get_attn_pad_mask_encoder, get_attn_pad_mask,get_encoder_non_pad_mask, get_decoder_non_pad_mask
+from MT_TransV1.Trans_MHA import MultiHeadAttention, PositionwiseFeedForward, PositionalEncoding
+from MT_TransV1.Load_sp_model import Load_sp_models
 
 #=============================================================================================================
 #-------------------------------------------------------------------------------------------------------------
@@ -38,7 +39,6 @@ class EncoderLayer(nn.Module):
     def forward(self, enc_input, non_pad_mask=None, slf_attn_mask=None):
 
         x=enc_input
-
         nx=self.norm1(x)        
         enc_output, enc_slf_attn = self.slf_attn(nx, nx, nx, mask=slf_attn_mask)
         x=x+self.dropout(enc_output)        
@@ -50,7 +50,6 @@ class EncoderLayer(nn.Module):
 #-------------------------------------------------------------------------------------------------------------
 class Encoder(nn.Module):
     """Encoder of Transformer including self-attention and feed forward. """
-
     def __init__(self, args, MT_flag):
         super(Encoder, self).__init__()
        

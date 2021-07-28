@@ -17,6 +17,19 @@ from utils__ import plotting
 from user_defined_losses import compute_cer
 #from Decoding_loop import get_cer_for_beam
 
+
+def Format_list_str(inp_var):
+        #
+        if isinstance(inp_var, str):
+                output_var = [inp_var]
+
+        elif isinstance(inp_var, list):
+                output_var = inp_var
+
+        else:
+                print('inp_var',inp_var,'is of format',type(inp_var),'only_list or str allowed')
+        return output_var
+
 #=========================================================================================================================================
 def get_cer_for_beam(scp_paths_decoding,model,text_file_dict,plot_path_name,args):
     #-----------------------------------
@@ -124,7 +137,7 @@ def get_Bleu_for_beam(key,Src_tokens,Src_text,Tgt_tokens,Tgt_text, model,plot_pa
 
     #-----------------------------------
     #-----------------------------------
-
+    #breakpoint()
     for ind, seq in enumerate(Output_seq):
         Text_seq=seq['Text_seq']
         if len(Text_seq)>1:
@@ -163,9 +176,13 @@ def get_Bleu_for_beam(key,Src_tokens,Src_text,Tgt_tokens,Tgt_text, model,plot_pa
                 else:
                     CER = 100
                 #breakpoint()
-                hyp_value = Text_seq_formatted 
-                ref_value = True_label
-                Bleu_score = sentence_bleu(hyp_value,[ref_value],smooth_value=SMOOTH_VALUE_DEFAULT,smooth_method='exp',use_effective_order='True')
+                #hyp_value = Text_seq_formatted 
+                #ref_value = True_label
+                #breakpoint()
+                hyp_value = Format_list_str(Text_seq_formatted)
+                ref_value = Format_list_str(True_label)
+        
+                Bleu_score = sentence_bleu(hyp_value,ref_value,smooth_value=SMOOTH_VALUE_DEFAULT,smooth_method='exp',use_effective_order='True')
         
                 Bleu_score = Bleu_score.score
         else:
@@ -173,7 +190,7 @@ def get_Bleu_for_beam(key,Src_tokens,Src_text,Tgt_tokens,Tgt_text, model,plot_pa
                 Bleu_score = None
         #---------------------------------------------
         if ind==0:
-                print("nbest_output",'=',key,'=',Text_seq_formatted,'=',True_label,'=',CER,'=',Bleu_score)
+                print("nbest_output",'=',key,'=',Text_seq_formatted,'=',True_label,'=',CER,'=',Bleu_score,'=',Src_text)
 
-        print("final_ouputs",'=',ind,'=',key,'=',Text_seq_formatted,'=',Yllr,'=',Ynorm_llr,'=',Yseq,'=',CER,'=',Bleu_score)
+        print("final_ouputs",'=',ind,'=',key,'=',Text_seq_formatted,'=',Yllr,'=',Ynorm_llr,'=',Yseq,'=',CER,'=',Bleu_score,'=',Src_text)
         #---------------------------------------------

@@ -4,14 +4,31 @@ import sys
 import os
 import torch
 #----------------------------------------
+#=========================================================
+def forword_and_update(smp_no, trainflag, model, optimizer, smp_Src_labels, smp_Tgt_labels, accm_grad, clip_grad_norm):
+        Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+        cost=Decoder_out_dict.get('cost')
 
+        if trainflag:
+                cost=cost/accm_grad
+                cost.backward()
+
+                if clip_grad_norm != 0:
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)
+                cost.detach()
+
+                ###gradient accumilation
+                if(smp_no%accm_grad)==0:
+                        optimizer.step()
+                        optimizer.zero_grad()
+
+        cost_cpu = cost.item()
+        return Decoder_out_dict,cost_cpu
+#=========================================================
 
 
 #---------------------------------------
 def train_val_model(**kwargs):
-
-        #breakpoint()
-
         smp_no=kwargs.get('smp_no')
         args = kwargs.get('args')
         model = kwargs.get('model')
@@ -34,61 +51,44 @@ def train_val_model(**kwargs):
         ##===========================================
         #============================================
         ###################################################################
-        #input = torch.from_numpy(smp_Src_data).float() ####
-
-
         smp_Src_labels = torch.LongTensor(smp_Src_labels)
         smp_Tgt_labels = torch.LongTensor(smp_Tgt_labels)
 
         #-----------------------------------------------------------------
-        #input = input.cuda() if args.gpu else input
-        #breakpoint()
+
         smp_Src_labels = smp_Src_labels.cuda() if args.gpu else smp_Src_labels
         smp_Tgt_labels = smp_Tgt_labels.cuda() if args.gpu else smp_Tgt_labels
         #--------------------------------
-        #
+
         OOM=False
         if trainflag:
-
             try:
-                Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+                Decoder_out_dict, cost_cpu = forword_and_update(smp_no, trainflag, model, optimizer, smp_Src_labels, smp_Tgt_labels, args.accm_grad, args.clip_grad_norm)
 
             except Exception as e:
-                   if 'CUDA out of memory' in str(e):
+                    if 'CUDA out of memory' in str(e):
                       OOM=True
                       torch.cuda.empty_cache()
-                      print("The model in OOM condition","smp_no",smp_no,"batch size for the batch is:",smp_Src_labels.shape)
+                      print("The model in OOM condition","smp_no", smp_no, "batch size for the batch is:", smp_Src_labels.shape)
                       #break;
+                    else:
+                        ####print if some other error occurs
+                        print("There is some other error",str(e))
+
+
             ###When there is oom eror make the batch size 2
             if OOM:
                   batch_size = smp_Src_labels.shape[0]
                   smp_Src_labels = smp_Src_labels[:2]
                   smp_Tgt_labels = smp_Tgt_labels[:2]
-                  print("The model running under OOM condition","smp_no",smp_no,"batch size for the batch is:",2)
-                  Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
+                  print("The model running under OOM condition", "smp_no", smp_no, "batch size for the batch is:", 2)
+                  Decoder_out_dict, cost_cpu = forword_and_update(smp_no, trainflag, model, optimizer, smp_Src_labels, smp_Tgt_labels, args.accm_grad, args.clip_grad_norm)
+
 
         else:
             with torch.no_grad():
-                    Decoder_out_dict = model(smp_Src_labels,smp_Tgt_labels)
-
+                     Decoder_out_dict, cost_cpu = forword_and_update(smp_no, trainflag, model, optimizer, smp_Src_labels, smp_Tgt_labels, args.accm_grad, args.clip_grad_norm)
         #--------------------------------
-        cost=Decoder_out_dict.get('cost')
-
-        ###training with accumilating gradients
-        if trainflag:
-                cost=cost/args.accm_grad
-                cost.backward()
-                if args.clip_grad_norm != 0:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(),args.clip_grad_norm)
-
-                cost.detach()   
-                ###gradient accumilation
-                if(smp_no%args.accm_grad)==0:
-                    optimizer.step()
-                    optimizer.zero_grad()
-                cost_cpu=cost.item()
-        #--------------------------------------
-        cost_cpu = cost.item() 
 
         ###output a dict
         #==================================================    

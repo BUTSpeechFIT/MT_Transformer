@@ -14,31 +14,39 @@ import random
 import glob
 
 import sys
-sys.path.insert(0, '/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1')
-from CMVN import CMVN
-from Load_sp_model import Load_sp_models
+sys.path.insert(0, '/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer')
+from MT_TransV1.CMVN import CMVN
+from MT_TransV1.Load_sp_model import Load_sp_models
 
 #===============================================
 #-----------------------------------------------  
 class DataLoader(object):
+    
 
-    def __init__(self,files, max_batch_label_len, max_batch_len, max_feat_len, max_label_len, Src_model, Tgt_model, queue_size=100,apply_cmvn=1):
+    def __init__(self, input_dict):
+    #def __init__(self,files, max_batch_label_len, max_batch_len, max_feat_len, max_label_len, Src_model, Tgt_model, queue_size=100,apply_cmvn=1,min_words=3,min_len_ratio=1.5):
 
-        self.files = files ####
+
+        self.files = input_dict['files'] ####
         if self.files==[]:
                 print('input to data generator in empty')
                 exit(0)
 
-        self.Src_model = Src_model
-        self.Tgt_model = Tgt_model
-        self.max_batch_len = max_batch_len
-        self.max_batch_label_len = max_batch_label_len
-        self.max_feat_len = max_feat_len
-        self.max_label_len = max_label_len
-        self.apply_cmvn = apply_cmvn
+        self.Src_model = input_dict['Src_model']
+        self.Tgt_model = input_dict['Tgt_model']
+        self.max_batch_len = input_dict['max_batch_len']
+        self.max_batch_label_len = input_dict['max_batch_label_len']
+        self.max_feat_len = input_dict['max_feat_len']
+        self.max_label_len = input_dict['max_label_len']
 
+        self.min_len_ratio = input_dict['min_len_ratio']
 
-        self.queue = queue.Queue(queue_size)
+        self.min_words = input_dict['min_words']
+        self.max_words = input_dict['max_words']
+
+        self.apply_cmvn = input_dict['apply_cmvn']
+
+        self.queue = queue.Queue(input_dict['queue_size'])
         self.Src_padding_id = self.Src_model.__len__()
         self.Tgt_padding_id = self.Tgt_model.__len__()
         self.word_space_token   = self.Src_model.EncodeAsIds('_____')[0]
@@ -99,9 +107,12 @@ class DataLoader(object):
         while True:
             self.__reset_the_data_holders()
             max_batch_label_len = self.max_batch_label_len
+            random.shuffle(self.files)
+            
             for inp_file in self.files:
                 with open(inp_file) as f:
                     for line in f:
+        
                         #============================
                         split_lines=line.split(' @@@@ ')
                         #============================
@@ -113,19 +124,34 @@ class DataLoader(object):
 
                         key = split_lines[0]
                         scp_path = split_lines[1] #will be 'None' fo MT setup
+                        scp_path = 'None' if scp_path == '' else scp_path ####some times None is missed by empty strings
+
                         #============================
                         ### Char labels
                         #============================
 
                         src_text = split_lines[3] 
                         src_tok = split_lines[4] 
-                        src_tok = [int(i) for i in src_tok.split(' ')]  
+                        
+
+                        # print(src_text,src_tok,split_lines,len(src_tok))
+
+                        if len(src_tok)>0:
+                            src_tok = [int(i) for i in src_tok.split(' ')]  
+                        else:
+                                continue;
                         #============================
                         ##Word models
                         #============================
                         tgt_text = split_lines[5]
                         tgt_tok = split_lines[6]
-                        tgt_tok = [int(i) for i in tgt_tok.split(' ')]  
+
+                        # print("tgt_text,tgt_tok",tgt_text,tgt_tok,len(tgt_tok))
+
+                        if len(tgt_tok)>0:
+                            tgt_tok = [int(i) for i in tgt_tok.split(' ')]  
+                        else:
+                                continue;
                         #============================
                         ### text 
                         #============================
@@ -134,24 +160,41 @@ class DataLoader(object):
 
                         Src_Words_Text = src_text.split(' ')
                         Tgt_Words_Text = tgt_text.split(' ')
+                        
+                        ###
+                        ### text_filtering
+                        if (len(Src_Words_Text) < self.min_words) or (len(Tgt_Words_Text) < self.min_words):
+                                #print("skippeddue to min_words", self.min_words,len(Src_Words_Text))
+                                continue;
+
+                        ##
+                        if ((len(Src_Words_Text)/len(Tgt_Words_Text)) > self.min_len_ratio) or ((len(Tgt_Words_Text)/len(Src_Words_Text)) > self.min_len_ratio):
+                                #print("skippped due to min_len_ratio", self.min_len_ratio,'.......................',len(Src_Words_Text)/len(Tgt_Words_Text))
+                                continue;
+
+                        ##
+                        if (len(Src_Words_Text) > self.max_words) or (len(Tgt_Words_Text) > self.max_words):
+                                #print("skippeddue to min_words", self.max_words,len(Src_Words_Text))
+                                continue;
+
                         #--------------------------
-                        if not (scp_path == 'None'):
+                        if ((scp_path != 'None')):
                             mat = kaldi_io.read_mat(scp_path)
                             if self.apply_cmvn:
                                 mat = CMVN(mat)
 
                             ####pruning the Acoustic features based on length ###for joint model
                             if (mat.shape[0]>self.max_feat_len) or (len(Src_tokens) > self.max_label_len):
-                                print("key,mat.shape,Src_Words_Text,Src_tokens,self.max_label_len",key,mat.shape,len(Src_Words_Text),len(Src_tokens),self.max_label_len)
+                                #print("key,mat.shape,Src_Words_Text,Src_tokens,self.max_label_len",key,mat.shape,len(Src_Words_Text),len(Src_tokens),self.max_label_len)
                                 continue;
                         else:
-                            mat=np.zeros((100,249),dtype=np.float32)
+                            mat=np.zeros((100,83),dtype=np.float32)
                             ####For MT model 
                             ###Src_tokens more than self.max_feat_len or Tgt_tokens more than self.max_label_len
                             ### should be  removed
                             ###
                             if (len(Src_tokens) > self.max_feat_len) or (len(Tgt_tokens) > self.max_label_len):
-                                print("key,Src_tokens, self.max_feat_len, Tgt_tokens, self.max_label_len",key,len(Src_tokens), self.max_feat_len, len(Tgt_tokens), self.max_label_len)
+                                #print("key,Src_tokens, self.max_feat_len, Tgt_tokens, self.max_label_len",key,len(Src_tokens), self.max_feat_len, len(Tgt_tokens), self.max_label_len)
                                 continue;
 
                         #--------------------------
@@ -210,6 +253,9 @@ class DataLoader(object):
                 #-----------------------------------------------
                 batch_data_dict = self.make_batching_dict()
                 self.queue.put(batch_data_dict)
+            #exit(0)
+
+
 
     def next(self, timeout=30000):
         return self.queue.get(block=True, timeout=timeout)

@@ -1,0 +1,74 @@
+#! usr/bin/bash
+
+
+
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_2000_accm8"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_2000_accm8_IWSLT"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_2000_accm8_fulldata"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_2000_accm8_fulldata_finetuning_mustc"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_2000_accm8_fulldata_finetuning_len_pruned_backtranslation"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_only_Joint_tokenizer_stepno"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet_8k"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet_10K"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet_dump"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_2048_dec6_256_2048_4000_accm3_mustc_espnet_dump"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_2048_dec6_256_2048_4000_accm3_mustc_espnet"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_4000_accm3_mustc_espnet_dump"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet_8k_dump"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_256_1024_dec6_256_1024_4000_accm8_mustc_espnet_10K_dump"
+
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_4000_accm8_mustc_espnet_10K"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_4000_accm3_mustc_espnet_10K"
+
+
+###lc_rm
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc6_512_2048_dec6_512_2048_4000_accm8_mustc_espnet_10K_lc.rm"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_4000_accm3_mustc_espnet_10K_lc.rm"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT_systems/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_4000_accm3_mustc_espnet_10K_lc.rm"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_lc.rm_tc"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_lc.rm_tc"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_lc.rm_tc_finetune"
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT_LM/models/Trnas_eng_Lm_training_from_pretrained_librispeech_6L_1024_4096_pretrained_fromLibrispeech_finetuning"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_tc_tc_finetuned_from_lc_tc_flatstart"
+
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_tc_tc_finetuned_from_lc_tc_finetuned"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_MT/models/Transformer_Mustc_enc4_1024_4096_dec4_1024_4096_15K_accm1_mustc_espnet_tc_tc_finetuned_from_lc_tc"
+
+
+
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/IWSLT2021_ASR/weight_files/Librispeech10WER_Transformer_ASR_enc12_1024_4096_dec6_1024_4096_15K_accm1_lc_rm_16H_finetune_mustc_ted_IWSLT_cleaned_tc"
+
+
+###---HOW2---
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/HOW2_IWSLT2021/HOW2_IWSLT2021_MT/models/Transformer_HOW2_enc4_1024_4096_dec4_1024_4096_15K_accm1_tc_tc_flatstart"
+#model_dir="/mnt/matylda3/vydana/HOW2_EXP/HOW2_IWSLT2021/HOW2_IWSLT2021_MT/models/Transformer_HOW2_enc4_1024_4096_dec4_1024_4096_15K_accm1_tc_tc_flatstart_3K/"
+model_dir="/mnt/matylda3/vydana/HOW2_EXP/HOW2_IWSLT2021/HOW2_IWSLT2021_MT/models/Transformer_HOW2_enc4_1024_4096_dec4_1024_4096_15K_accm1_tc_tc_flatstart_5K/"
+
+
+SWA_random_tag="$RANDOM"
+SWA_random_tag=""$SWA_random_tag""
+
+#int to pick the maximum values
+est_cpts=8
+ignore_cpts=0
+###
+
+echo "$model_dir" 
+echo "$SWA_random_tag" 
+echo "$est_cpts"
+echo "$ignore_cpts"
+
+python /mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1/Get_SWA_weights.py $model_dir $SWA_random_tag $est_cpts $ignore_cpts
+
+

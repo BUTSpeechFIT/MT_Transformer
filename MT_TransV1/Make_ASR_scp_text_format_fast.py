@@ -6,7 +6,7 @@ from os.path import join
 
 
 sys.path.insert(0,'/mnt/matylda3/vydana/HOW2_EXP/MT_Transformer/MT_TransV1')
-from Load_sp_model import Load_sp_models
+from MT_TransV1.Load_sp_model import Load_sp_models
 text_dlim=' @@@@ '
 ##================================================================
 ##================================================================
@@ -19,20 +19,21 @@ text_dlim=' @@@@ '
 # Char_model = Word_model
 # outfile=open(output_file,'w')
 #=====================================================================================
-def Search_for_utt(query, search_file,SPmodel_path):
+def Search_for_utt(query, search_file,SPmodel_path,model):
         #check if the model is word model
         ##this whole nonsence is due to thesentenc epiece mapping two consecutive OOVs as a single OOV this is undesirable and 
         ##other tokeniations such as bpe ,char,unigram doesnot have this .....so for the word models ame ends with __word so encode the text word by word
         #not a good hack ...but i dont know it for now 
         #---------------------
         #---------------------
+        SPmodel=model
         utt_text=search_file.get(query,'None')
         utt_text=" ".join(utt_text)
 
         if utt_text != 'None' and SPmodel_path:
                 this_is_word_model = True if '__word' in SPmodel_path else False
                 ##check if the model is a word model and load it
-                SPmodel=Load_sp_models(SPmodel_path)
+                #SPmodel=Load_sp_models(SPmodel_path)
                 
                 tokens_utt_text=[]
                 if this_is_word_model:
@@ -56,6 +57,7 @@ def format_tokenize_data(scp_files,transcript,Translation,outfile,Tgt_model_path
         for scpfile in scp_files:  
           #import pdb;pdb.set_trace() 
           
+          print(scpfile)
           line=open(scpfile).readline()
           line=line.split(' ')[0]
           if len(line)==1:
@@ -66,13 +68,17 @@ def format_tokenize_data(scp_files,transcript,Translation,outfile,Tgt_model_path
           #=====================================================================
           transcript_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open(transcript)}
           Translation_dict={line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open(Translation)}
-
+        
+          print('done loading dicts')
+          SPmodel=Load_sp_models(Src_model_path)
+          Tgmodel=Load_sp_models(Tgt_model_path)
+           
           for query in list(scp_dict.keys()):
                 #print(query)
                 inp_seq = query + text_dlim
-                inp_seq += Search_for_utt(query, search_file=scp_dict,SPmodel_path=None)
-                inp_seq += Search_for_utt(query, search_file=transcript_dict,SPmodel_path=Src_model_path)
-                inp_seq += Search_for_utt(query, search_file=Translation_dict,SPmodel_path=Tgt_model_path)
+                inp_seq += Search_for_utt(query, search_file=scp_dict,SPmodel_path=None,model=None)
+                inp_seq += Search_for_utt(query, search_file=transcript_dict,SPmodel_path=Src_model_path,model=SPmodel)
+                inp_seq += Search_for_utt(query, search_file=Translation_dict,SPmodel_path=Tgt_model_path,model=Tgmodel)
                 #------------------
                 #print(inp_seq)
                 print(inp_seq,file=outfile) 

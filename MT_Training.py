@@ -22,6 +22,8 @@ import torch.optim as optim
 
 from random import shuffle
 from statistics import mean
+
+
 import matplotlib
 import matplotlib.pyplot as plt 
 plt.switch_backend('agg')
@@ -50,7 +52,7 @@ if args.gpu:
 from Dataloader_for_MT_v2 import DataLoader
 from TRANSFORMER_MT_V1 import Transformer
 from Initializing_Transformer_MT import Initialize_Att_model
-from Transformer_Training_loop_MT import train_val_model
+from Training_loop_MT import train_val_model
 from Load_sp_model import Load_sp_models
 ##==================================
 #==============================================================
@@ -61,6 +63,7 @@ png_dir=args.model_dir+'_png'
 if not isdir(png_dir):
         os.makedirs(png_dir)
 ############################################
+
 #=============================================================
 def main():
         ##Load setpiece models for Dataloaders
@@ -69,22 +72,33 @@ def main():
         ###initilize the model
         model,optimizer=Initialize_Att_model(args)
         #============================================================
-        #------------------------------------------------------------  
-        train_gen = DataLoader(files=glob.glob(args.data_dir + "train_scp"),
-                                max_batch_label_len=args.max_batch_label_len,
-                                max_batch_len=args.max_batch_len,
-                                max_feat_len=args.max_feat_len,
-                                max_label_len=args.max_label_len,
-                                Src_model=Src_model,
-                                Tgt_model=Tgt_model)    
+        #------------------------------------------------------------
+        train_gen = DataLoader({'files': glob.glob(args.data_dir + "train_splits_V2/*"),
+                                'max_batch_label_len': args.max_batch_label_len,
+                                'max_batch_len': args.max_batch_len,
+                                'max_feat_len': args.max_feat_len,
+                                'max_label_len': args.max_label_len,
+                                'Src_model': Src_model,
+                                'Tgt_model': Tgt_model,
+                                'queue_size': 100,
+                                'apply_cmvn': 1,
+                                'min_words': args.min_words,
+                                'max_words': args.max_words,
+                                'min_len_ratio': args.min_len_ratio})    
 
-        dev_gen = DataLoader(files=glob.glob(args.data_dir + "dev_scp"),
-                                max_batch_label_len=20000,
-                                max_batch_len=args.max_batch_len,
-                                max_feat_len=args.max_feat_len,
-                                max_label_len=args.max_label_len,
-                                Src_model=Src_model,
-                                Tgt_model=Tgt_model)
+
+        dev_gen = DataLoader({'files': glob.glob(args.data_dir + "dev_splits/*"),
+                                'max_batch_label_len': 20000,
+                                'max_batch_len': args.max_batch_len,
+                                'max_feat_len': 1000,
+                                'max_label_len': 1000,
+                                'Src_model': Src_model,
+                                'Tgt_model': Tgt_model,
+                                'queue_size': 100,
+                                'apply_cmvn': 1,
+                                'min_words': 0,
+                                'max_words': 10000,
+                                'min_len_ratio': 4})
 
 
         #Flags that may change while training 
@@ -94,7 +108,8 @@ def main():
             ##start of the epoch
             tr_CER=[]; tr_BPE_CER=[]; L_train_cost=[]
             model.train();
-            for trs_no in range(args.validate_interval):
+            validate_interval = int(args.validate_interval * args.accm_grad) if args.accm_grad>0 else args.validate_interval
+            for trs_no in range(validate_interval):
                 B1 = train_gen.next()
                 assert B1 is not None, "None should never come out of the DataLoader"
                 Output_trainval_dict=train_val_model(smp_no=trs_no,
@@ -112,7 +127,7 @@ def main():
                 #attention_map=Output_trainval_dict.get('attention_record').data.cpu().numpy()
                 #==========================================
                 if (trs_no%args.tr_disp==0):
-                    print("tr ep:==:>",epoch,"sampl no:==:>",trs_no,"train_cost==:>",mean(L_train_cost),"CER:",mean(tr_CER),'BPE_CER',mean(tr_BPE_CER),flush=True)    
+                    print("tr ep:==:>",epoch,"sampl no:==:>",trs_no,"train_cost==:>",__mean(L_train_cost),"CER:",__mean(tr_CER),'BPE_CER',__mean(tr_BPE_CER),flush=True)    
                     #------------------------
                     if args.plot_fig_training:
                         plot_name=join(png_dir,'train_epoch'+str(epoch)+'_attention_single_file_'+str(trs_no)+'.png')
@@ -145,22 +160,21 @@ def main():
                 Vl_CER.append(Val_Output_trainval_dict.get('Char_cer'))
                 Vl_BPE_CER.append(Val_Output_trainval_dict.get('Word_cer'))
                 #attention_map=Val_Output_trainval_dict.get('attention_record').data.cpu().numpy()
-
                 #======================================================     
                 #======================================================
                 if (vl_smp%args.vl_disp==0) or (val_examples==args.max_val_examples-1):
-                    print("val epoch:==:>",epoch,"val smp no:==:>",vl_smp,"val_cost:==:>",mean(L_val_cost),"CER:",mean(Vl_CER),'BPE_CER',mean(Vl_BPE_CER),flush=True)    
-
+                    
+                    print("val epoch:==:>",epoch,"val smp no:==:>",vl_smp,"val_cost:==:>",__mean(L_val_cost),"CER:",__mean(Vl_CER),'BPE_CER',__mean(Vl_BPE_CER),flush=True)    
                     if args.plot_fig_validation:
                         plot_name=join(png_dir,'val_epoch'+str(epoch)+'_attention_single_file_'+str(vl_smp)+'.png')                                 
                         plotting(plot_name,attention_map)                             
             #----------------------------------------------------
 #==================================================================
-            val_history[epoch]=(mean(Vl_CER)*100)
+            val_history[epoch]=(__mean(Vl_CER)*100)
             print("val_history:",val_history[:epoch+1])
             #================================================================== 
             ####saving_weights 
-            ct="model_epoch_"+str(epoch)+"_sample_"+str(trs_no)+"_"+str(mean(L_train_cost))+"___"+str(mean(L_val_cost))+"__"+str(mean(Vl_CER))
+            ct="model_epoch_"+str(epoch)+"_sample_"+str(trs_no)+"_"+str(__mean(L_train_cost))+"___"+str(__mean(L_val_cost))+"__"+str(__mean(Vl_CER))
             print(ct)
             torch.save(model.state_dict(),join(args.model_dir,str(ct)))
             #######################################################                    
@@ -171,19 +185,40 @@ def main():
                 print(join(args.model_dir,str(ct)), file=weight_saving_file)
 
             with open(args.Res_text_file,'a+') as Res_saving_file:
-                print(float(mean(Vl_CER)), file=Res_saving_file)
+                print(float(__mean(Vl_CER)), file=Res_saving_file)
             #=================================
-             # early_stopping and checkpoint averaging:                    
-            if args.early_stopping:
-                 A=val_history
-                 Non_zero_loss=A[A>0]
-                 min_cpts=np.argmin(Non_zero_loss)
-                 Non_zero_len=len(Non_zero_loss)
-                 if (Non_zero_len-min_cpts) > args.early_stopping_patience:                                
-                    print("The model is early stopping........","minimum value of model is:",min_cpts)
-                    exit(0)
+            # early_stopping and checkpoint averaging:  
+            ##print(np.array(val_his[i:i+5]),np.any(np.abs(np.array(val_his[i:i+5])-np.array(val_his[i]))>0.6))
 
-#=======================================================
+
+            if args.early_stopping:
+                A=val_history
+                Non_zero_loss=A[A>0]
+                min_cpts=np.argmin(Non_zero_loss)
+                Non_zero_len=len(Non_zero_loss)
+
+                if ((Non_zero_len-min_cpts)>1):
+                                weight_noise_flag=True
+                                spec_aug_flag=True
+
+                #-----------------------
+                if epoch>args.early_stopping_patience:
+                    #if (Non_zero_len-min_cpts) > args.early_stopping_patience:
+                        #np.any(np.abs(A[i:i+5]-A[i])>0.5)==False
+
+                    if np.any(np.abs( Non_zero_loss[ epoch - args.early_stopping_patience:epoch ] - Non_zero_loss[epoch-1])>0.5)==False:
+                        "General early stopping has over trained the model or may be should i regularize with dropout"
+                        print("The model is early stopping........","minimum value of model is:",min_cpts)
+                        exit(0)
+#======================================================
+
+def __mean(inp):
+        """
+        """
+        if len(inp)==1:
+                return inp[0]
+        else:
+                return mean(inp)
 #=============================================================================================
 if __name__ == '__main__':
     main()
